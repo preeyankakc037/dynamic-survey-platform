@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Plus, Save, Play } from "lucide-react"
 import { Button } from "@/components/ui/Button"
@@ -7,10 +7,13 @@ import { Textarea } from "@/components/ui/Textarea"
 import { useSurveyBuilder } from "@/hooks/useSurveyBuilder"
 import { QuestionType } from "@/types/survey"
 import { QuestionEditor } from "@/components/survey/QuestionEditor"
+import { surveyService } from "@/services/surveys"
 
 export function SurveyBuilder() {
   const navigate = useNavigate()
-  const { id } = useParams() // if 'new', it's a new survey
+  const { id } = useParams()
+  const isNew = !id || id === 'new'
+
   const {
     survey,
     updateMetadata,
@@ -19,13 +22,58 @@ export function SurveyBuilder() {
     deleteQuestion,
     duplicateQuestion,
     reorderQuestions,
+    setSurvey,
   } = useSurveyBuilder()
 
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(!isNew)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isNew && id) {
+      setIsLoading(true)
+      surveyService.getSurvey(id)
+        .then((data) => {
+          setSurvey(data)
+        })
+        .catch((err) => {
+          setError(err.message)
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+    }
+  }, [id, isNew, setSurvey])
 
   const handleSave = async () => {
-    // API call placeholder
-    console.log("Saving survey", survey)
+    if (!survey.title.trim()) {
+      alert("Survey title is required")
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      if (isNew) {
+        const newSurvey = await surveyService.createSurvey({
+          title: survey.title,
+          description: survey.description,
+          questions: survey.questions
+        })
+        navigate(`/admin/surveys/${newSurvey._id}/edit`, { replace: true })
+      } else {
+        await surveyService.updateSurvey(survey._id!, {
+          title: survey.title,
+          description: survey.description,
+          questions: survey.questions
+        })
+        alert("Survey saved successfully!")
+      }
+    } catch (err: any) {
+      alert("Failed to save survey: " + err.message)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const questionTypes: { label: string; type: QuestionType }[] = [
@@ -35,8 +83,16 @@ export function SurveyBuilder() {
     { label: "Rating", type: "rating" },
   ]
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full text-text-secondary">Loading survey...</div>
+  }
+
+  if (error) {
+    return <div className="p-8 text-danger">Error: {error}</div>
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)] -m-8">
       {/* Topbar */}
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-6">
         <div className="flex items-center gap-4">
@@ -46,13 +102,13 @@ export function SurveyBuilder() {
           <div className="font-semibold">{survey.title || "Untitled Survey"}</div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => navigate(`/admin/surveys/${id || 'new'}/preview`)}>
+          <Button variant="secondary" onClick={() => navigate(`/admin/surveys/${survey._id || 'new'}/preview`)}>
             <Play className="h-4 w-4 mr-2" />
             Preview
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
-            Save Survey
+            {isSaving ? "Saving..." : "Save Survey"}
           </Button>
         </div>
       </header>
