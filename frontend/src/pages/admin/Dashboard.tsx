@@ -1,86 +1,141 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
-import { PlusCircle } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { PlusCircle, BarChart2, Edit2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { surveyService } from '@/services/surveys';
+import { Survey } from '@/types/survey';
+import { useAuth } from '@/context/AuthContext';
+
+function formatDate(iso?: string): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export function Dashboard() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    surveyService
+      .getSurveys()
+      .then(setSurveys)
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const totalSurveys = surveys.length;
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-text-primary tracking-tight">Dashboard</h1>
-        <Button onClick={() => navigate("/admin/surveys/new")} className="gap-2">
+    <div className="space-y-8 max-w-5xl">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-text-primary tracking-tight">
+            {greeting()}{user ? `, ${user.name}` : ''}.
+          </h1>
+          <p className="text-text-secondary text-sm mt-1">Here's what's happening with your surveys.</p>
+        </div>
+        <Button onClick={() => navigate('/admin/surveys/new')} className="gap-2 shrink-0">
           <PlusCircle className="h-4 w-4" />
           Create Survey
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">Total Surveys</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-3xl font-bold text-text-primary">
+              {isLoading ? '—' : totalSurveys}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-text-secondary">Total Responses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">845</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-text-secondary">Published Surveys</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-text-secondary">Draft Surveys</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-3xl font-bold text-text-primary">—</div>
+            <p className="text-xs text-text-secondary mt-1">Connect backend to see responses</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">Recent Surveys</h2>
-        <div className="grid gap-4">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/admin/surveys/1/edit")}>
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Student Feedback</h3>
-                <div className="flex items-center gap-4 text-sm text-text-secondary">
-                  <span>12 questions</span>
-                  <span>48 responses</span>
-                  <span className="text-success font-medium">Published</span>
+      {/* Recent surveys */}
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold text-text-primary">Recent Surveys</h2>
+
+        {isLoading && (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-20 rounded-xl bg-border/50 animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="text-danger text-sm border border-danger/30 bg-danger/5 rounded-md px-4 py-3">
+            Failed to load surveys: {error}
+          </div>
+        )}
+
+        {!isLoading && !error && surveys.length === 0 && (
+          <div className="text-center py-10 text-text-secondary border border-dashed border-border rounded-xl">
+            <p className="mb-3">No surveys yet.</p>
+            <Button variant="secondary" onClick={() => navigate('/admin/surveys/new')}>
+              Create your first survey
+            </Button>
+          </div>
+        )}
+
+        {!isLoading && !error && surveys.slice(0, 5).map((s) => (
+          <Card key={s._id} className="hover:border-primary/40 transition-colors">
+            <CardContent className="flex items-center justify-between p-5">
+              <div className="min-w-0">
+                <h3 className="font-medium text-text-primary truncate">{s.title}</h3>
+                <p className="text-xs text-text-secondary mt-0.5 truncate max-w-sm">{s.description}</p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-text-secondary">
+                  <span>{s.questions.length} question{s.questions.length !== 1 ? 's' : ''}</span>
+                  <span>Updated {formatDate(s.updated_at)}</span>
                 </div>
+              </div>
+              <div className="flex items-center gap-1.5 ml-4 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Edit"
+                  onClick={() => navigate(`/admin/surveys/${s._id}/edit`)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Analytics"
+                  onClick={() => navigate(`/admin/surveys/${s._id}/analytics`)}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                </Button>
               </div>
             </CardContent>
           </Card>
-          
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate("/admin/surveys/2/edit")}>
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Course Evaluation</h3>
-                <div className="flex items-center gap-4 text-sm text-text-secondary">
-                  <span>8 questions</span>
-                  <span>23 responses</span>
-                  <span className="text-warning font-medium">Draft</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        ))}
       </div>
     </div>
-  )
+  );
 }
