@@ -20,108 +20,87 @@ export interface PerQuestionAnalytics {
   text_responses?: string[];
 }
 
-const USE_REAL_API = false;
+// ── Shape returned by the FastAPI backend ────────────────────────────────
+interface BackendQuestion {
+  id: string;
+  label: string;
+  type: string;
+  // single_choice / checkbox
+  counts?: Record<string, number>;
+  // rating
+  average?: number | null;
+  count?: number;
+  // text
+  answers?: string[];
+}
 
-const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+interface BackendAnalytics {
+  survey_id: string;
+  title: string;
+  total_responses: number;
+  questions: BackendQuestion[];
+}
 
-// Mock analytics data keyed by survey ID
-const mockAnalytics: Record<string, SurveyAnalyticsData> = {
-  'mock-1': {
-    survey_id: 'mock-1',
-    title: 'Student Feedback',
-    total_responses: 48,
-    question_count: 5,
-    average_rating: 4.4,
-    per_question: [
-      {
-        question_id: 'q2',
-        label: 'Did you enjoy the course?',
-        type: 'single_choice',
-        choice_counts: [
-          { name: 'Yes', count: 36 },
-          { name: 'No', count: 12 },
-        ],
-      },
-      {
-        question_id: 'q4',
-        label: 'Which technologies do you use?',
-        type: 'checkbox',
-        choice_counts: [
-          { name: 'React', count: 35 },
-          { name: 'Python', count: 28 },
-          { name: 'FastAPI', count: 21 },
-          { name: 'Node.js', count: 17 },
-        ],
-      },
-      {
-        question_id: 'q5',
-        label: 'Rate the course overall',
-        type: 'rating',
-        average: 4.4,
-        distribution: [
-          { name: '5 ★', count: 22 },
-          { name: '4 ★', count: 14 },
-          { name: '3 ★', count: 7 },
-          { name: '2 ★', count: 3 },
-          { name: '1 ★', count: 2 },
-        ],
-      },
-      {
-        question_id: 'q1',
-        label: 'What is your name?',
-        type: 'text',
-        text_responses: [
-          'Really enjoyed the practical examples.',
-          'The interface was easy to use.',
-          'Would like more advanced exercises.',
-          'The pacing was a bit too fast in the second week.',
-          'Great experience overall!',
-        ],
-      },
-    ],
-  },
-  'mock-2': {
-    survey_id: 'mock-2',
-    title: 'Course Evaluation',
-    total_responses: 23,
-    question_count: 2,
-    average_rating: 4.1,
-    per_question: [
-      {
-        question_id: 'q2',
-        label: 'Rate the instructor',
-        type: 'rating',
-        average: 4.1,
-        distribution: [
-          { name: '5 ★', count: 10 },
-          { name: '4 ★', count: 8 },
-          { name: '3 ★', count: 3 },
-          { name: '2 ★', count: 1 },
-          { name: '1 ★', count: 1 },
-        ],
-      },
-    ],
-  },
-};
+// ── Transform backend → frontend shape ───────────────────────────────────
+function transform(raw: BackendAnalytics): SurveyAnalyticsData {
+  const per_question: PerQuestionAnalytics[] = raw.questions.map((q) => {
+    const base: PerQuestionAnalytics = {
+      question_id: q.id,
+      label: q.label,
+      type: q.type,
+    };
+
+    if (q.type === 'single_choice' || q.type === 'checkbox') {
+      const counts = q.counts || {};
+      base.choice_counts = Object.entries(counts).map(([name, count]) => ({ name, count }));
+    }
+
+    if (q.type === 'rating') {
+      base.average = q.average ?? undefined;
+      // Build a distribution array from raw counts if available
+      const counts = q.counts || {};
+      if (Object.keys(counts).length > 0) {
+        base.distribution = Object.entries(counts)
+          .sort(([a], [b]) => Number(b) - Number(a))
+          .map(([name, count]) => ({ name: `${name} ★`, count }));
+      }
+    }
+
+    if (q.type === 'text') {
+      base.text_responses = q.answers || [];
+    }
+
+    return base;
+  });
+
+  // Compute average_rating across all rating questions
+  const ratingQuestions = per_question.filter((q) => q.type === 'rating' && q.average != null);
+  const average_rating =
+    ratingQuestions.length > 0
+      ? Math.round(
+          (ratingQuestions.reduce((sum, q) => sum + (q.average ?? 0), 0) /
+            ratingQuestions.length) *
+            10
+        ) / 10
+      : null;
+
+  return {
+    survey_id: raw.survey_id,
+    title: raw.title,
+    total_responses: raw.total_responses,
+    question_count: raw.questions.length,
+    average_rating,
+    per_question,
+  };
+}
 
 export const analyticsService = {
+  /**
+   * Fetch analytics for a survey (admin-only, requires JWT token).
+   * GET /api/surveys/{surveyId}/analytics
+   */
   async getAnalytics(surveyId: string): Promise<SurveyAnalyticsData> {
-    if (USE_REAL_API) {
-      return apiClient.get(`/surveys/${surveyId}/analytics`);
-    }
-    await delay();
-    const data = mockAnalytics[surveyId];
-    if (!data) {
-      // Return empty analytics for surveys without mock data
-      return {
-        survey_id: surveyId,
-        title: 'Survey',
-        total_responses: 0,
-        question_count: 0,
-        average_rating: null,
-        per_question: [],
-      };
-    }
-    return { ...data };
+    const raw: BackendAnalytics = await apiClient.get(`/surveys/${surveyId}/analytics`);
+    return transform(raw);
   },
 };
