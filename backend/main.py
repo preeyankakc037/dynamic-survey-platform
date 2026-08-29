@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.routes.analytics import router as analytics_router
 from app.routes.responses import router as response_router
 from app.routes.surveys import router as survey_router
 
@@ -12,6 +13,7 @@ app = FastAPI(
 
 app.include_router(survey_router)
 app.include_router(response_router)
+app.include_router(analytics_router)
 
 
 @app.get("/")
