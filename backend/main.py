@@ -17,17 +17,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# ── CORS ─────────────────────────────────────────────────────────────────
-# Allow the Vite dev server (and production domain) to call the API.
-# In production, replace the origins list with your actual frontend URL.
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:3000"
-).split(",")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
