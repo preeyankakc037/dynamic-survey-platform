@@ -58,9 +58,9 @@ export function AdminLayout() {
           {user && (
             <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
               <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                {user.name.charAt(0).toUpperCase()}
+                {user.username.charAt(0).toUpperCase()}
               </div>
-              <span className="text-sm font-medium text-text-primary truncate">{user.name}</span>
+              <span className="text-sm font-medium text-text-primary truncate">{user.username}</span>
             </div>
           )}
           <Button

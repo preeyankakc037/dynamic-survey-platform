@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { useForm, FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -7,12 +7,14 @@ import { CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { QuestionRenderer } from "@/components/survey/QuestionRenderer"
 import { Survey, Question } from "@/types/survey"
+import { surveyService } from "@/services/surveys"
+import { responsesService } from "@/services/responses"
 
 function evaluateCondition(condition: Question['condition'], formValues: any) {
   if (!condition) return true
   const { question_id, operator, value } = condition
   const answer = formValues[`q_${question_id}`]
-  
+
   if (operator === 'equals') {
     if (Array.isArray(answer)) {
       return answer.includes(value)
@@ -24,27 +26,20 @@ function evaluateCondition(condition: Question['condition'], formValues: any) {
 
 export function PublicSurvey() {
   const { surveyId } = useParams()
-  // Mock data for public survey
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Mock API fetch
-    setTimeout(() => {
-      setSurvey({
-        title: "Student Feedback",
-        description: "Help us improve our course.",
-        questions: [
-          { id: "q1", type: "text", label: "What is your name?", required: true },
-          { id: "q2", type: "single_choice", label: "Did you enjoy the course?", required: true, options: ["Yes", "No"] },
-          { id: "q3", type: "text", label: "What did you enjoy most?", required: false, condition: { question_id: "q2", operator: "equals", value: "Yes" } },
-          { id: "q4", type: "rating", label: "Rate the course", required: true, min: 1, max: 5 },
-        ]
-      })
-      setIsLoading(false)
-    }, 500)
+    if (!surveyId) return
+    setIsLoading(true)
+    surveyService.getSurvey(surveyId)
+      .then(setSurvey)
+      .catch((e) => setError(e.message))
+      .finally(() => setIsLoading(false))
   }, [surveyId])
 
   const formSchema = useMemo(() => {
@@ -99,12 +94,59 @@ export function PublicSurvey() {
     })
   }, [formValues, survey?.questions, setValue])
 
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading survey...</div>
+  const onSubmit = async (data: any) => {
+    if (!surveyId) return
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    // Remove answers for hidden (conditional) questions
+    const submitData = { ...data }
+    survey?.questions.forEach(q => {
+      if (q.condition && !evaluateCondition(q.condition, formValues)) {
+        delete submitData[`q_${q.id}`]
+      }
+    })
+
+    // Transform from { q_q1: "Yes", q_q3: 4 } → { q1: "Yes", q3: 4 }
+    const answers: Record<string, string | string[] | number> = {}
+    Object.entries(submitData).forEach(([key, value]) => {
+      const questionId = key.replace(/^q_/, '')
+      // Convert rating string to number
+      const question = survey?.questions.find(q => q.id === questionId)
+      if (question?.type === 'rating' && typeof value === 'string') {
+        answers[questionId] = Number(value)
+      } else {
+        answers[questionId] = value as string | string[]
+      }
+    })
+
+    try {
+      await responsesService.submitResponse(surveyId, answers)
+      setIsSuccess(true)
+    } catch (e: any) {
+      setSubmitError(e.message || 'Failed to submit. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  if (!survey) {
-    return <div className="min-h-screen flex items-center justify-center">Survey not found.</div>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-text-secondary">Loading survey...</div>
+      </div>
+    )
+  }
+
+  if (error || !survey) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-text-primary mb-2">Survey not found</h2>
+          <p className="text-text-secondary">{error || 'This survey does not exist or has been removed.'}</p>
+        </div>
+      </div>
+    )
   }
 
   if (isSuccess) {
@@ -119,21 +161,6 @@ export function PublicSurvey() {
     )
   }
 
-  const onSubmit = async (data: any) => {
-    setIsSubmitting(true)
-    const submitData = { ...data }
-    survey.questions.forEach(q => {
-      if (q.condition && !evaluateCondition(q.condition, formValues)) {
-        delete submitData[`q_${q.id}`]
-      }
-    })
-    
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSuccess(true)
-    }, 1000)
-  }
-
   return (
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-3xl mx-auto bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
@@ -143,7 +170,7 @@ export function PublicSurvey() {
             <p className="text-text-secondary whitespace-pre-wrap">{survey.description}</p>
           )}
         </div>
-        
+
         <FormProvider {...methods}>
           <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8">
             {survey.questions.map((q, index) => {
@@ -156,6 +183,12 @@ export function PublicSurvey() {
                 </div>
               )
             })}
+
+            {submitError && (
+              <div className="bg-danger/10 border border-danger/30 text-danger text-sm rounded-md px-4 py-3">
+                {submitError}
+              </div>
+            )}
 
             <div className="pt-4">
               <Button type="submit" disabled={isSubmitting} size="lg" className="w-full sm:w-auto">

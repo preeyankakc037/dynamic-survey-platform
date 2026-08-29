@@ -43,7 +43,7 @@ export function Dashboard() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-text-primary tracking-tight">
-            {greeting()}{user ? `, ${user.name}` : ''}.
+            {greeting()}{user ? `, ${user.username}` : ''}.
           </h1>
           <p className="text-text-secondary text-sm mt-1">Here's what's happening with your surveys.</p>
         </div>
