@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 
 interface LoginFormValues {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -33,7 +33,7 @@ export function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setServerError(null);
-      await login(data.email, data.password);
+      await login(data.username, data.password);
       navigate(from, { replace: true });
     } catch (err: any) {
       setServerError(err.message || 'Login failed. Please try again.');
@@ -51,22 +51,21 @@ export function LoginPage() {
 
         <div className="bg-surface border border-border rounded-xl shadow-sm p-8 space-y-6">
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-            {/* Email */}
+            {/* Username */}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="admin@example.com"
-                className={errors.email ? 'border-danger' : ''}
-                {...register('email', {
-                  required: 'Email is required.',
-                  pattern: { value: /\S+@\S+\.\S+/, message: 'Enter a valid email address.' },
+                id="username"
+                type="text"
+                autoComplete="username"
+                placeholder="admin"
+                className={errors.username ? 'border-danger' : ''}
+                {...register('username', {
+                  required: 'Username is required.',
                 })}
               />
-              {errors.email && (
-                <p className="text-danger text-xs mt-1">{errors.email.message}</p>
+              {errors.username && (
+                <p className="text-danger text-xs mt-1">{errors.username.message}</p>
               )}
             </div>
 
@@ -100,10 +99,6 @@ export function LoginPage() {
               {isSubmitting ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
-
-          <p className="text-xs text-text-secondary text-center">
-            Demo: use any valid email and a password of 6+ characters.
-          </p>
         </div>
       </div>
     </div>

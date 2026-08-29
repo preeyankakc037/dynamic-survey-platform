@@ -1,17 +1,14 @@
-// Auth service — wraps login/logout/session.
-// Currently uses localStorage mock. When FastAPI JWT endpoint is ready,
-// replace the body of login() to call POST /api/auth/login and store the token.
+import { apiClient, tokenStore } from './api/client';
 
 export interface AuthUser {
-  email: string;
-  name: string;
+  username: string;
 }
 
-const AUTH_KEY = 'survey_platform_auth';
+const USER_KEY = 'survey_platform_user';
 
 function getStoredUser(): AuthUser | null {
   try {
-    const raw = localStorage.getItem(AUTH_KEY);
+    const raw = localStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -20,37 +17,30 @@ function getStoredUser(): AuthUser | null {
 
 export const authService = {
   /**
-   * Login with email + password.
-   * MOCK: accepts any credentials with a valid email format and password length >= 6.
-   * Replace body with: const res = await apiClient.post('/auth/login', { email, password });
-   * then store res.token in localStorage.
+   * Login with username + password.
+   * Calls POST /api/auth/login, stores the JWT token in localStorage.
    */
-  async login(email: string, password: string): Promise<AuthUser> {
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 600));
-
-    // Mock validation — accept any well-formed credentials
-    if (!email.includes('@') || password.length < 6) {
-      throw new Error('Invalid email or password.');
-    }
-
-    const user: AuthUser = {
-      email,
-      name: email.split('@')[0],
-    };
-    localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+  async login(username: string, password: string): Promise<AuthUser> {
+    const res = await apiClient.post('/auth/login', { username, password });
+    // Store the JWT token so apiClient can inject it automatically
+    tokenStore.set(res.access_token);
+    const user: AuthUser = { username };
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
     return user;
   },
 
   logout(): void {
-    localStorage.removeItem(AUTH_KEY);
+    tokenStore.clear();
+    localStorage.removeItem(USER_KEY);
   },
 
   getCurrentUser(): AuthUser | null {
+    // Only return user if a token exists (session still valid)
+    if (!tokenStore.get()) return null;
     return getStoredUser();
   },
 
   isAuthenticated(): boolean {
-    return getStoredUser() !== null;
+    return !!tokenStore.get() && getStoredUser() !== null;
   },
 };
