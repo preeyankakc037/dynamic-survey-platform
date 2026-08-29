@@ -5,22 +5,27 @@ export interface SurveyResponse {
   answers: Record<string, string | string[] | number>;
 }
 
-const USE_REAL_API = false;
-
-const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
-
 export const responsesService = {
   /**
    * Submit a response for a public survey.
-   * When FastAPI endpoint is ready, set USE_REAL_API = true.
    * POST /api/surveys/{surveyId}/responses
+   *
+   * The backend expects answers as an array of {question_id, value} objects.
+   * The frontend stores answers as a flat Record<questionId, value>, so we
+   * transform before sending.
    */
-  async submitResponse(surveyId: string, answers: Record<string, string | string[] | number>): Promise<void> {
-    if (USE_REAL_API) {
-      await apiClient.post(`/surveys/${surveyId}/responses`, { answers });
-      return;
-    }
-    await delay();
-    console.log('[Mock] Submitted response for survey', surveyId, answers);
+  async submitResponse(
+    surveyId: string,
+    answers: Record<string, string | string[] | number>
+  ): Promise<void> {
+    // Transform { q1: "Yes", q2: 4 } → [{ question_id: "q1", value: "Yes" }, ...]
+    const answersArray = Object.entries(answers).map(([question_id, value]) => ({
+      question_id,
+      value,
+    }));
+
+    await apiClient.post(`/surveys/${surveyId}/responses`, {
+      answers: answersArray,
+    });
   },
 };
