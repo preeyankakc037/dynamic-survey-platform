@@ -45,29 +45,26 @@ export function PublicSurvey() {
   const formSchema = useMemo(() => {
     if (!survey) return z.object({})
     const schemaObj: Record<string, any> = {}
+    
     survey.questions.forEach((q) => {
-      let fieldSchema: any
-      switch (q.type) {
-        case "text":
-          fieldSchema = z.string()
-          if (q.required) fieldSchema = fieldSchema.min(1, "This question is required.")
-          else fieldSchema = fieldSchema.optional()
-          break
-        case "single_choice":
-        case "rating":
-          fieldSchema = z.string()
-          if (q.required) fieldSchema = fieldSchema.min(1, "This question is required.")
-          else fieldSchema = fieldSchema.optional()
-          break
-        case "checkbox":
-          fieldSchema = z.array(z.string())
-          if (q.required) fieldSchema = fieldSchema.min(1, "Please select at least one option.")
-          else fieldSchema = fieldSchema.optional()
-          break
-      }
-      schemaObj[`q_${q.id}`] = fieldSchema
+      schemaObj[`q_${q.id}`] = z.any()
     })
-    return z.object(schemaObj)
+    
+    return z.object(schemaObj).superRefine((data, ctx) => {
+      survey.questions.forEach(q => {
+        const isVisible = evaluateCondition(q.condition, data)
+        if (isVisible && q.required) {
+          const val = data[`q_${q.id}`]
+          if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: q.type === 'checkbox' ? "Please select at least one option." : "This question is required.",
+              path: [`q_${q.id}`]
+            })
+          }
+        }
+      })
+    })
   }, [survey])
 
   const methods = useForm({

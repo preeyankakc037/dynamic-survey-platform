@@ -103,4 +103,12 @@ export const analyticsService = {
     const raw: BackendAnalytics = await apiClient.get(`/surveys/${surveyId}/analytics`);
     return transform(raw);
   },
+
+  /**
+   * Fetch global analytics summary (total responses across all surveys)
+   * GET /api/analytics/summary
+   */
+  async getGlobalSummary(): Promise<{ total_responses: number }> {
+    return await apiClient.get(`/analytics/summary`);
+  }
 };

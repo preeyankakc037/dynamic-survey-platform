@@ -17,13 +17,19 @@ export function Dashboard() {
   const { user } = useAuth();
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [totalResponses, setTotalResponses] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    surveyService
-      .getSurveys()
-      .then(setSurveys)
+    Promise.all([
+      surveyService.getSurveys(),
+      import('@/services/analytics').then(m => m.analyticsService.getGlobalSummary())
+    ])
+      .then(([surveysData, summaryData]) => {
+        setSurveys(surveysData);
+        setTotalResponses(summaryData.total_responses);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setIsLoading(false));
   }, []);
@@ -70,8 +76,9 @@ export function Dashboard() {
             <CardTitle className="text-sm font-medium text-text-secondary">Total Responses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-text-primary">—</div>
-            <p className="text-xs text-text-secondary mt-1">Connect backend to see responses</p>
+            <div className="text-3xl font-bold text-text-primary">
+              {isLoading ? '—' : (totalResponses ?? 0)}
+            </div>
           </CardContent>
         </Card>
       </div>

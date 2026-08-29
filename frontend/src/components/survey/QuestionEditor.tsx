@@ -199,15 +199,19 @@ export function QuestionEditor({
                 </div>
                 
                 {/* Conditional Logic Section */}
-                {availableQuestions.length > 0 && (
-                  <div className="pt-2 border-t border-border/50">
+                <div className="pt-2 border-t border-border/50">
+                  {availableQuestions.length > 0 ? (
                     <ConditionEditor
                       condition={question.condition || null}
                       availableQuestions={availableQuestions}
                       onChange={(cond) => onUpdate({ condition: cond })}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-xs text-text-secondary italic px-2 py-1">
+                      * Add a choice or rating question before this one to enable conditional logic.
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             

@@ -171,7 +171,7 @@ export function SurveyBuilder() {
                   question={q}
                   index={index}
                   totalQuestions={survey.questions.length}
-                  availableQuestions={survey.questions.slice(0, index)}
+                  availableQuestions={survey.questions.slice(0, index).filter(q => q.type !== 'text')}
                   isActive={activeQuestionId === q.id}
                   onActivate={() => setActiveQuestionId(q.id)}
                   onUpdate={(updates) => updateQuestion(q.id, updates)}

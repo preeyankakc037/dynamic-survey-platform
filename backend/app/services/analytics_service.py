@@ -56,3 +56,7 @@ async def get_survey_analytics(survey_id: str):
         "total_responses": total_responses,
         "questions": question_results,
     }
+
+async def get_global_analytics():
+    total = await responses_collection.count_documents({})
+    return {"total_responses": total}
