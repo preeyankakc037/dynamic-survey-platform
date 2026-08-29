@@ -11,14 +11,16 @@ import { Survey, Question } from "@/types/survey"
 
 function evaluateCondition(condition: Question['condition'], formValues: any) {
   if (!condition) return true
+  // If no value is set on the condition yet, show the question
+  if (condition.value === '' || condition.value === null || condition.value === undefined) return true
   const { question_id, operator, value } = condition
   const answer = formValues[`q_${question_id}`]
   
   if (operator === 'equals') {
     if (Array.isArray(answer)) {
-      return answer.includes(value)
+      return answer.includes(String(value))
     }
-    return String(answer) === String(value)
+    return String(answer ?? '') === String(value)
   }
   return true
 }

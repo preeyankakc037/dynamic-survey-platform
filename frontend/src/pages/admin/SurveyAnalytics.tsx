@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Users, Star, HelpCircle } from "lucide-react"
+import { ArrowLeft, Users, Star, HelpCircle, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
@@ -60,10 +60,14 @@ export function SurveyAnalytics() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-semibold text-text-primary tracking-tight">{data.title}</h1>
           <p className="text-sm text-text-secondary">Analytics Dashboard</p>
         </div>
+        <Button variant="secondary" onClick={() => navigate(`/admin/surveys/${id}/responses`)} className="gap-2 shrink-0">
+          <MessageSquare className="h-4 w-4" />
+          View Responses
+        </Button>
       </header>
 
       {/* Summary Cards */}

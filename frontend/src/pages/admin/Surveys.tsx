@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { PlusCircle, Search, Edit2, BarChart2, Copy, Trash2, Eye } from "lucide-react"
+import { PlusCircle, Search, Edit2, BarChart2, Copy, Trash2, Eye, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
@@ -62,7 +62,7 @@ export function Surveys() {
   )
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 w-full max-w-5xl overflow-hidden">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-text-primary tracking-tight">Surveys</h1>
         <Button onClick={() => navigate("/admin/surveys/new")} className="gap-2">
@@ -110,41 +110,50 @@ export function Surveys() {
         )}
 
         {!isLoading && !error && filteredSurveys.map((survey) => (
-          <Card key={survey._id} className="hover:border-primary/40 transition-colors">
-            <CardContent className="flex items-center justify-between p-5">
-              <div className="space-y-1 min-w-0 flex-1 pr-4">
-                <h3 className="font-semibold text-lg cursor-pointer hover:text-primary truncate" onClick={() => navigate(`/admin/surveys/${survey._id}/edit`)}>
-                  {survey.title}
-                </h3>
-                <p className="text-sm text-text-secondary truncate">
-                  {survey.description || "No description"}
-                </p>
-                <div className="flex items-center gap-4 text-xs text-text-secondary pt-2">
-                  <span>{survey.questions.length} questions</span>
-                  <span className="text-success font-medium">Published</span>
-                  <span>Updated {formatDate(survey.updated_at)}</span>
+          <Card key={survey._id} className="hover:border-primary/40 transition-colors overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <h3
+                    className="font-semibold text-lg cursor-pointer hover:text-primary truncate"
+                    onClick={() => navigate(`/admin/surveys/${survey._id}/edit`)}
+                  >
+                    {survey.title}
+                  </h3>
+                  <p className="text-sm text-text-secondary line-clamp-1">
+                    {survey.description || "No description"}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-text-secondary pt-1">
+                    <span>{survey.questions.length} question{survey.questions.length !== 1 ? 's' : ''}</span>
+                    <span className="text-success font-medium">Published</span>
+                    <span>Updated {formatDate(survey.updated_at)}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="icon" title="Preview" onClick={() => navigate(`/admin/surveys/${survey._id}/preview`)}>
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" title="Copy Public Link" onClick={() => handleCopyLink(survey._id!)}>
-                  <span className="sr-only">Copy Link</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                </Button>
-                <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/surveys/${survey._id}/edit`)}>
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" title="Analytics" onClick={() => navigate(`/admin/surveys/${survey._id}/analytics`)}>
-                  <BarChart2 className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(survey._id!)}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-danger hover:text-danger hover:bg-danger/10" title="Delete" onClick={() => handleDelete(survey._id!)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Action buttons — wrap on narrow cards */}
+                <div className="flex flex-wrap items-center gap-0.5 shrink-0">
+                  <Button variant="ghost" size="icon" title="Preview" onClick={() => navigate(`/admin/surveys/${survey._id}/preview`)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Copy Public Link" onClick={() => handleCopyLink(survey._id!)}>
+                    <span className="sr-only">Copy Link</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/surveys/${survey._id}/edit`)}>
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Analytics" onClick={() => navigate(`/admin/surveys/${survey._id}/analytics`)}>
+                    <BarChart2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Responses" onClick={() => navigate(`/admin/surveys/${survey._id}/responses`)}>
+                    <MessageSquare className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(survey._id!)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-danger hover:text-danger hover:bg-danger/10" title="Delete" onClick={() => handleDelete(survey._id!)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

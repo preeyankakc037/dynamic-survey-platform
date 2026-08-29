@@ -38,15 +38,29 @@ async def get_survey_analytics(survey_id: str):
             for value in values:
                 choices = value if isinstance(value, list) else [value]
                 for choice in choices:
-                    counts[choice] = counts.get(choice, 0) + 1
+                    counts[str(choice)] = counts.get(str(choice), 0) + 1
             result["counts"] = counts
 
         elif q_type == "rating":
-            result["average"] = round(sum(values) / len(values), 2) if values else None
-            result["count"] = len(values)
+            numeric_values = []
+            for v in values:
+                if v is not None:
+                    try:
+                        numeric_values.append(float(v))
+                    except (ValueError, TypeError):
+                        pass
+            
+            result["average"] = round(sum(numeric_values) / len(numeric_values), 2) if numeric_values else None
+            result["count"] = len(numeric_values)
+            # Build distribution counts for chart
+            dist_counts = {}
+            for v in numeric_values:
+                key = str(int(v))
+                dist_counts[key] = dist_counts.get(key, 0) + 1
+            result["counts"] = dist_counts
 
         elif q_type == "text":
-            result["answers"] = values
+            result["answers"] = [str(v) for v in values]
 
         question_results.append(result)
 

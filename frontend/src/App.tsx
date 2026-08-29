@@ -8,6 +8,7 @@ import { Surveys } from '@/pages/admin/Surveys';
 import { SurveyBuilder } from '@/pages/admin/SurveyBuilder';
 import { SurveyPreview } from '@/pages/admin/SurveyPreview';
 import { SurveyAnalytics } from '@/pages/admin/SurveyAnalytics';
+import { SurveyResponses } from '@/pages/admin/SurveyResponses';
 import { PublicHome } from '@/pages/public/PublicHome';
 import { PublicSurvey } from '@/pages/public/PublicSurvey';
 import { NotFound } from '@/pages/NotFound';
@@ -34,6 +35,7 @@ function App() {
               <Route path="surveys/new" element={<SurveyBuilder />} />
               <Route path="surveys/:id/edit" element={<SurveyBuilder />} />
               <Route path="surveys/:id/analytics" element={<SurveyAnalytics />} />
+              <Route path="surveys/:id/responses" element={<SurveyResponses />} />
             </Route>
             {/* Preview doesn't need the sidebar layout */}
             <Route path="surveys/:id/preview" element={<SurveyPreview />} />

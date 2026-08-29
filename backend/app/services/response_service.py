@@ -10,7 +10,13 @@ from app.services.survey_service import get_survey_by_id
 def _is_condition_met(condition, answers_by_id):
     if condition is None:
         return True
-    return answers_by_id.get(condition["question_id"]) == condition["value"]
+    cond_value = condition.get("value")
+    # If condition value is empty/None, treat as "always show"
+    if cond_value is None or cond_value == "":
+        return True
+    actual = answers_by_id.get(condition["question_id"])
+    # Type-safe comparison: compare as strings to handle int/str mismatch
+    return str(actual) == str(cond_value)
 
 
 def _validate_answer(question, value):
@@ -70,3 +76,17 @@ async def create_response(survey_id: str, response: ResponseCreate):
     response_data["_id"] = str(result.inserted_id)
 
     return response_data
+
+
+async def get_responses(survey_id: str):
+    responses = []
+    async for response in responses_collection.find(
+        {"survey_id": survey_id},
+        sort=[("submitted_at", -1)]
+    ):
+        response["_id"] = str(response["_id"])
+        # Convert datetime to ISO string
+        if "submitted_at" in response and hasattr(response["submitted_at"], "isoformat"):
+            response["submitted_at"] = response["submitted_at"].isoformat()
+        responses.append(response)
+    return responses
