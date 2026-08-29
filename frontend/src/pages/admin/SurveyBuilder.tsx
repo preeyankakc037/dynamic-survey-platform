@@ -102,7 +102,16 @@ export function SurveyBuilder() {
           <div className="font-semibold">{survey.title || "Untitled Survey"}</div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" onClick={() => navigate(`/admin/surveys/${survey._id || 'new'}/preview`)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (isNew || !survey._id) {
+                alert("Please save the survey before previewing.")
+                return
+              }
+              navigate(`/admin/surveys/${survey._id}/preview`)
+            }}
+          >
             <Play className="h-4 w-4 mr-2" />
             Preview
           </Button>

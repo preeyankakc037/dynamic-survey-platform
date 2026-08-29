@@ -56,9 +56,9 @@ export function Surveys() {
     alert("Public link copied to clipboard!")
   }
 
-  const filteredSurveys = surveys.filter(s => 
-    s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSurveys = surveys.filter(s =>
+    s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (s.description || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (

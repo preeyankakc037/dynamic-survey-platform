@@ -81,6 +81,7 @@ export function SurveyPreview() {
 
   // Handle conditional logic cleanup (if question becomes hidden, clear its value)
   useEffect(() => {
+    if (!survey) return
     survey.questions.forEach((q) => {
       if (q.condition) {
         const isVisible = evaluateCondition(q.condition, formValues)
@@ -94,7 +95,7 @@ export function SurveyPreview() {
         }
       }
     })
-  }, [formValues, survey.questions, setValue])
+  }, [formValues, survey?.questions, setValue])
 
   const onSubmit = async (data: any) => {
     setIsSubmitting(true)
