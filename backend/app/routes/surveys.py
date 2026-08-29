@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.schemas.survey import SurveyCreate
-from app.services.survey_service import create_survey, get_surveys, get_survey_by_id
+from app.services.survey_service import (
+    create_survey,
+    get_surveys,
+    get_survey_by_id,
+    update_survey,
+    delete_survey,
+)
 
 
 router = APIRouter(
@@ -28,3 +34,21 @@ async def get_survey_endpoint(survey_id: str):
         raise HTTPException(status_code=404, detail="Survey not found")
 
     return survey
+
+
+@router.put("/{survey_id}")
+async def update_survey_endpoint(survey_id: str, survey: SurveyCreate):
+    updated_survey = await update_survey(survey_id, survey)
+
+    if updated_survey is None:
+        raise HTTPException(status_code=404, detail="Survey not found")
+
+    return updated_survey
+
+
+@router.delete("/{survey_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_survey_endpoint(survey_id: str):
+    deleted = await delete_survey(survey_id)
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Survey not found")

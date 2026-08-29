@@ -47,3 +47,29 @@ async def get_survey_by_id(survey_id: str):
 
     survey["_id"] = str(survey["_id"])
     return survey
+
+async def update_survey(survey_id: str, survey: SurveyCreate):
+    if not ObjectId.is_valid(survey_id):
+        return None
+
+    survey_data = survey.model_dump()
+    survey_data["updated_at"] = datetime.now(timezone.utc)
+
+    updated_survey = await surveys_collection.find_one_and_update(
+        {"_id": ObjectId(survey_id)},
+        {"$set": survey_data},
+        return_document=ReturnDocument.AFTER,
+    )
+
+    if updated_survey is None:
+        return None
+
+    updated_survey["_id"] = str(updated_survey["_id"])
+    return updated_survey
+
+async def delete_survey(survey_id: str):
+    if not ObjectId.is_valid(survey_id):
+        return False
+
+    result = await surveys_collection.delete_one({"_id": ObjectId(survey_id)})
+    return result.deleted_count == 1
